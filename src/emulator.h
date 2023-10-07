@@ -258,3 +258,27 @@ struct Image image_from_exec_file(const char* path) {
 
         return image;
 }
+
+struct Image image_from_file(const char* path) {
+	struct Image image = {};
+
+	FILE* fs = fopen(path, "r");
+	fseek(fs, 0, SEEK_END);
+	size_t len = ftell(fs);
+	rewind(fs);
+
+	if (len > MEMSIZE) {
+		err(ERR_IMAGE_MEMCAP);
+	}
+
+	fread(image.memory, len, 1, fs);
+	fclose(fs);
+
+	return image;
+}
+
+void image_write_to_file(struct Image* img, const char* path) {
+	FILE* fs = fopen(path, "w");
+	fwrite(img->memory, MEMSIZE, 1, fs);
+	fclose(fs);
+}

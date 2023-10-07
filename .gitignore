@@ -1,0 +1,5 @@
+# Where the program should (and will eventually) build
+build/
+
+# Because i keep manually building and forgetting to delete the binary
+src/a
