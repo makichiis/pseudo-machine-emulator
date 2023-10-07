@@ -166,6 +166,7 @@ void decode(struct PCPU* cpu) {
                 break;
 	case EXT:
 		decode_extension_op(cpu);
+		break;
         default:
                 printf(": Unsupported instruction.\n");
                 break;
