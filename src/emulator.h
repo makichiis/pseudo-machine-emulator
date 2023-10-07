@@ -242,7 +242,7 @@ struct Image image_from_exec(uint8_t* exec_bytes, size_t len) {
         return image;
 }
 
-struct Image image_from_file(const char* path) {
+struct Image image_from_exec_file(const char* path) {
         FILE* fs = fopen(path, "r");
         fseek(fs, 0, SEEK_END);
         size_t len = ftell(fs);

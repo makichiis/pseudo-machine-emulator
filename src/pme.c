@@ -62,7 +62,7 @@ int main(int argc, const char** argv) {
 	struct PCPU cpu = pcpu_new(memory);
 
 	// Load exec
-	struct Image image = image_from_file("code.exec");
+	struct Image image = image_from_exec_file("code.exec");
 	pcpu_load_image(&cpu, &image);
 
 	// Display initial memory buffer
