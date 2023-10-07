@@ -65,8 +65,22 @@ struct PCPU {
 #define JMP                     0xB
 #define HALT                    0xC
 
-#define OPCODE_LMA LOAD_REGISTER_WITH_MEM
-#define OPCODE_HALT HALT
+// Extension instructions (non-standard)
+#define EXT			0xE
+
+// namespaced instruction names for external use
+#define OPCODE_LMA 	LOAD_REGISTER_WITH_MEM
+#define OPCODE_LBP 	LOAD_REGISTER_WITH_VAL
+#define OPCODE_SMA 	WRITE_REGISTER_TO_MEM
+#define OPCODE_CRP 	COPY_REGISTER
+#define OPCODE_ADS 	ADD_SIGNED_INT
+#define OPCODE_ADF 	ADD_MINIFLOAT
+#define OPCODE_OR  	BOOLEAN_OR
+#define OPCODE_AND 	BOOLEAN_AND
+#define OPCODE_XOR 	BOOLEAN_XOR
+#define OPCODE_ROT 	BIT_ROTATE
+#define OPCODE_JMP  	JMP
+#define OPCODE_HALT	HALT
 
 #define ERR_NO_MEMORY "CPU manages no memory block."
 
@@ -74,7 +88,9 @@ struct PCPU {
         fprintf(stderr, "Error: "msg"\n"); \
         exit(EXIT_FAILURE);
 
-
+void decode_extension_op(struct PCPU* cpu) {
+	printf(": Non-standard instruction.\n");
+}
 
 void decode(struct PCPU* cpu) {
         opcode_t op = get_opcode(cpu->ir);
@@ -148,6 +164,8 @@ void decode(struct PCPU* cpu) {
         case HALT:
                 printf(": Halt.\n");
                 break;
+	case EXT:
+		decode_extension_op(cpu);
         default:
                 printf(": Unsupported instruction.\n");
                 break;
