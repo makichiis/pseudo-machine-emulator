@@ -8,6 +8,7 @@ typedef uint8_t         r_t;
 typedef uint8_t*        memblock_ptr_t;
 
 typedef uint16_t        word_t;
+typedef uint8_t         minifloat_t;
 typedef uint8_t         memptr_t;
 typedef uint8_t         opcode_t;
 
@@ -66,7 +67,7 @@ struct PCPU {
 #define HALT                    0xC
 
 // Extension instructions (non-standard)
-#define EXT			0xE
+#define EXT			                0xE
 
 // namespaced instruction names for external use
 #define OPCODE_LMA 	LOAD_REGISTER_WITH_MEM
@@ -79,7 +80,7 @@ struct PCPU {
 #define OPCODE_AND 	BOOLEAN_AND
 #define OPCODE_XOR 	BOOLEAN_XOR
 #define OPCODE_ROT 	BIT_ROTATE
-#define OPCODE_JMP  	JMP
+#define OPCODE_JMP  JMP
 #define OPCODE_HALT	HALT
 
 #define ERR_NO_MEMORY "CPU manages no memory block."
@@ -89,8 +90,55 @@ struct PCPU {
         exit(EXIT_FAILURE);
 
 void decode_extension_op(struct PCPU* cpu) {
-	printf(": Non-standard instruction.\n");
+	      printf(": Non-standard instruction.\n");
 }
+
+#define BIAS        3
+#define EXP_MASK    0b01110000
+#define SIGN_MASK   0b10000000
+#define MANT_MASK   0b00001111
+#define FLOAT_POINT 0b00010000
+
+int16_t normalize_float(minifloat_t flt) {
+        int8_t exp = ((flt & EXP_MASK) >> 4) - BIAS;
+        bool sign = (flt & SIGN_MASK) == SIGN_MASK;
+        flt &= MANT_MASK;
+        flt |= FLOAT_POINT;
+        uint16_t normalized = flt;
+        normalized <<= BIAS;
+        if (exp > 0)  normalized <<= exp;
+        else          normalized >>= abs(exp);
+        if (sign)     normalized *= -1;
+        return normalized;
+}
+
+#define EXT_MSB       0b0000100000000000
+#define EXT_MANT_MASK 0b0000000000001111
+
+minifloat_t to_float(int16_t buffer) {
+        bool sign = false;
+        if (buffer < 0) {
+          sign = true;
+          buffer *= -1;
+        }
+        uint8_t exp;
+        for (exp = 0; (buffer & EXT_MSB) != EXT_MSB; exp++) buffer <<= 1;
+        buffer <<= 1;
+        buffer >>= 8;
+        exp = 7 - exp;
+        exp <<= 4;
+        exp = exp | (uint8_t) (buffer & EXT_MANT_MASK);
+        if (sign) exp |= SIGN_MASK;
+        return (minifloat_t) exp;
+}
+
+minifloat_t minifloat_add(minifloat_t a, minifloat_t b) {
+        if (a == 0x00 && b == 0x00) return 0x00;
+        else if (a == 0x00)         return b;
+        else if (b == 0x00)         return a;
+        return to_float(normalize_float(a) + normalize_float(b));
+}
+
 
 void decode(struct PCPU* cpu) {
         opcode_t op = get_opcode(cpu->ir);
@@ -119,16 +167,16 @@ void decode(struct PCPU* cpu) {
         case COPY_REGISTER:
                 printf(": Copy register to other register.\n");
                 break;
-        // For now, the implementation of integer and float addition
-        // adds two casted larger values and casts them back down
-        // to their 8-bit types. This might change.
-        // Also, error flags are not yet specified for the ADD
-        // instructions.
         case ADD_SIGNED_INT:
                 printf(": Add two signed ints.\n");
                 break;
         case ADD_MINIFLOAT:
                 printf(": Add two minifloats.\n");
+                cpu->regs.slots[param_1]
+                        = minifloat_add(
+                                cpu->regs.slots[param_2],
+                                cpu->regs.slots[param_3]
+                          );
                 break;
         case BOOLEAN_OR:
                 printf(": OR two registers, store in dest.\n");
@@ -153,7 +201,7 @@ void decode(struct PCPU* cpu) {
                 uint8_t b = cpu->regs.slots[param_1];
                 uint8_t r = param_3 % 8;
                 cpu->regs.slots[param_1]
-                        = (b >> r) | ((b & (0xFF >> 8-r)) << 8-r);
+                        = (b >> r) | ((b & (0xFF >> (8-r))) << (8-r));
                 break;
         case JMP:
                 printf(": Jump if RX == R0\n");

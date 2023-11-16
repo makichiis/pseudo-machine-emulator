@@ -9,7 +9,7 @@ void display_memory(struct PCPU* cpu, struct Image* img) {
 			printf("\033[0m");
 		}
 		if (i == img->memory[0x00]) {
-			for (word_t word; word != 0xC000; i += 2) {
+			for (word_t word; word != 0xC000 && word != 0xC0; i += 2) {
 				word = get_word(cpu->memory, i);
 				printf("\033[92m");
 				if (i % 16 == 0) puts("");
@@ -62,7 +62,11 @@ int main(int argc, const char** argv) {
 	struct PCPU cpu = pcpu_new(memory);
 
 	// Load exec
-	struct Image image = image_from_exec_file("code.exec");
+  if (argc < 2) {
+    perror("Error: Binary not provided\n");
+    exit(1);
+  }
+	struct Image image = image_from_exec_file(argv[1]);
 	pcpu_load_image(&cpu, &image);
 
 	// Display initial memory buffer
